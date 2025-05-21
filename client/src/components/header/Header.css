@@ -1,0 +1,41 @@
+.header {
+  background-color: var(--color-primary-light);
+  color: var(--color-text-primary);
+  min-height: 7vmin;
+  width: 96%;
+  padding: 1vmin 2%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  .name {
+    display: flex;
+    align-items: center;
+
+    h1 {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    img {
+      height: 6vmin;
+      width: 6vmin;
+      margin: 0 1vmin 0 1vmin;
+      border-radius: 10%;
+    }
+  }
+
+  .options {
+    img {
+      height: 3vmin;
+      width: 3vmin;
+      margin: 0 1vmin 0 1vmin;
+      border-radius: 10%;
+      filter: invert(1);
+      cursor: pointer;
+    }
+  }
+}
