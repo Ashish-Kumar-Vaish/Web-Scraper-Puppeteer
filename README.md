@@ -17,4 +17,4 @@ Uses React for the frontend and Express for the backend.
 
 ## Screenshots
 
-![Home Page](https://i.ibb.co/5xKQy9x8/Screenshot-2025-05-21-085329.png)
+![Home Page](/client/public/assets/screenshot.png)
