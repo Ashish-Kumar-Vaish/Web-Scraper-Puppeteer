@@ -183,9 +183,7 @@ const { executablePath } = require("puppeteer");
 cron.schedule("0 */5 * * *", scrapeEvents); // every 5 hours
 
 // SERVER START
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 10000;
 app.listen(port, () => {
-  console.log(
-    `The server has started successfully on http://localhost:${port}`
-  );
+  console.log(`Listening on port ${port}`);
 });
