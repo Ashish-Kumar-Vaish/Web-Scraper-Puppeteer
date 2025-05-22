@@ -1,7 +1,7 @@
-# Use an official Node.js runtime as a base image
+# Use official Node.js 18 as the base image
 FROM node:18
 
-# Install required dependencies including xauth
+# Install dependencies required for Puppeteer to run headless Chromium
 RUN apt-get update && apt-get install -y \
   wget \
   ca-certificates \
@@ -26,16 +26,18 @@ RUN apt-get update && apt-get install -y \
   --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
+# Set working directory
 WORKDIR /usr/src/app
 
-# Install app dependencies
+# Copy dependency files and install packages
 COPY package*.json ./
 RUN npm ci
 
-# Bundle app source
+# Copy the rest of the application code
 COPY . .
 
-# Expose port and run app with xvfb
+# Expose the port (informational; Render uses PORT env var)
 EXPOSE 10000
+
+# Start the app using xvfb (required for headless Puppeteer)
 CMD ["xvfb-run", "--", "node", "index.js"]

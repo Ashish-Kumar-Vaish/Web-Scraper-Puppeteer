@@ -51,7 +51,7 @@ app.get("/events", async (req, res) => {
       success: true,
       next:
         offset + 5 < totalEvents
-          ? `http://localhost:8000/events/?offset=${offset + 5}`
+          ? `${req.protocol}://${req.get("host")}/events/?offset=${offset + 5}`
           : null,
       events: eventsDetails,
     });
@@ -183,7 +183,7 @@ const { executablePath } = require("puppeteer");
 cron.schedule("0 */5 * * *", scrapeEvents); // every 5 hours
 
 // SERVER START
-const port = 10000;
+const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
