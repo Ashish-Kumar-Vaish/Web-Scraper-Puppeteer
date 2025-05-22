@@ -99,7 +99,13 @@ puppeteer.use(StealthPlugin());
 async function scrapeEvents() {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--single-process",
+      "--no-zygote",
+    ],
+    executablePath: puppeteer.executablePath(),
   });
   const page = await browser.newPage();
 
@@ -173,6 +179,7 @@ scrapeEvents();
 
 // SCHEDULER
 const cron = require("node-cron");
+const { executablePath } = require("puppeteer");
 cron.schedule("0 */5 * * *", scrapeEvents); // every 5 hours
 
 // SERVER START
