@@ -20,7 +20,7 @@ async function main() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to MongoDB!");
   } catch (error) {
-    console.error("Failed to connect to MongoDB", error);
+    console.error("Failed to connect to MongoDB", error.message);
   }
 }
 main();
@@ -96,16 +96,21 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 puppeteer.use(StealthPlugin());
 
-async function scrapeEvents() {
-  const browser = await puppeteer.launch({ headless: true });
+(async function scrapeEvents() {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
   const page = await browser.newPage();
 
   await page.goto("https://www.sydney.com/events");
-  await page.waitForSelector("#product-list-rest-10741", { timeout: 10000 });
+  await page.waitForSelector(".product-list-domestic.is_ready.map_not_open", {
+    timeout: 10000,
+  });
 
   const scrapedEvents = await page.evaluate(() => {
     const eventElements = document.querySelectorAll(
-      "#product-list-rest-10741 .grid-item.product-list-widget.tile__product-list"
+      ".product-list-domestic.is_ready.map_not_open .grid-item.product-list-widget.tile__product-list"
     );
 
     return Array.from(eventElements).map((el) => ({
@@ -120,8 +125,6 @@ async function scrapeEvents() {
 
   let finalEvents = [];
   for (const event of scrapedEvents) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     try {
       const eventPage = await browser.newPage();
       await eventPage.goto(event.initialLink, { waitUntil: "networkidle2" });
@@ -142,6 +145,8 @@ async function scrapeEvents() {
     } catch (err) {
       console.error("Failed to get final link for event:", event.title, err);
     }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
   await browser.close();
@@ -163,8 +168,7 @@ async function scrapeEvents() {
     const eventsCount = await events.countDocuments();
     totalEvents = eventsCount;
   })();
-}
-scrapeEvents();
+})();
 
 // SCHEDULER
 const cron = require("node-cron");
