@@ -1,7 +1,4 @@
-# Use Node image with Debian (more compatible)
-FROM node:18-slim
-
-# Install required dependencies for Chromium
+# Install required dependencies including xauth
 RUN apt-get update && apt-get install -y \
   wget \
   ca-certificates \
@@ -22,22 +19,6 @@ RUN apt-get update && apt-get install -y \
   xdg-utils \
   libu2f-udev \
   xvfb \
+  xauth \
   --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
-WORKDIR /usr/src/app
-
-# Copy and install dependencies
-COPY package*.json ./
-RUN npm ci
-
-# Copy rest of the code
-COPY . .
-
-# Environment vars for Puppeteer
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
-
-# Start with xvfb to fake display (needed for headless Chromium)
-CMD xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" node app.js
