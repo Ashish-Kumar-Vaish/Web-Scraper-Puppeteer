@@ -1,17 +1,9 @@
 const express = require("express");
 const cors = require("cors");
-const mongoose = require("mongoose");
-const puppeteer = require("puppeteer-extra");
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-const cron = require("node-cron");
+const app = express();
 require("dotenv").config();
 
-const events = require("./schemas/events");
-const emails = require("./schemas/emails");
-
-const app = express();
-puppeteer.use(StealthPlugin());
-
+// EXPRESS
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
@@ -21,116 +13,25 @@ app.use(
   })
 );
 
-let totalEvents = 0;
-
-// Scraper Function
-async function scrapeEvents() {
-  console.log("Starting event scraping...");
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-
-  const page = await browser.newPage();
+// Connect to MongoDB
+const mongoose = require("mongoose");
+async function main() {
   try {
-    await page.goto("https://www.sydney.com/events", {
-      waitUntil: "domcontentloaded",
-    });
-    await page.waitForSelector(".product-list-domestic.is_ready.map_not_open", {
-      timeout: 10000,
-    });
-
-    const scrapedEvents = await page.evaluate(() => {
-      const eventElements = document.querySelectorAll(
-        ".product-list-domestic.is_ready.map_not_open .grid-item.product-list-widget.tile__product-list"
-      );
-
-      return Array.from(eventElements).map((el) => ({
-        title: el.querySelector("h3")?.innerText.trim(),
-        initialLink: el.querySelector("a")?.href,
-        date: el.querySelector(".product__list-date")?.innerText || "No date",
-        image: el.querySelector(".img-responsive")?.src,
-        description: el.querySelector(".prod-desc")?.innerText,
-        location: el.querySelector(".tile__area-name")?.innerText,
-      }));
-    });
-
-    let finalEvents = [];
-    for (const event of scrapedEvents) {
-      try {
-        const eventPage = await browser.newPage();
-        await eventPage.goto(event.initialLink, { waitUntil: "networkidle2" });
-
-        const ticketLink = await eventPage.evaluate(() => {
-          return (
-            document.querySelector(
-              ".atdw-inpage__cta.has-booking .btn.btn__cta__with-price"
-            )?.href || null
-          );
-        });
-
-        finalEvents.push({
-          ...event,
-          link: ticketLink || event.initialLink,
-        });
-
-        await eventPage.close();
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (err) {
-        console.error("Failed to get final link for event:", event.title, err);
-      }
-    }
-
-    await browser.close();
-
-    if (!finalEvents.length) {
-      console.log("No events found.");
-      return;
-    }
-
-    // Delete old events
-    await events.deleteMany({});
-    console.log("Old events deleted.");
-
-    // Insert new events
-    await events.insertMany(finalEvents);
-    totalEvents = await events.countDocuments();
-
-    console.log(`Scraped & inserted ${finalEvents.length} events.`);
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("Connected to MongoDB!");
   } catch (error) {
-    console.error("Error during scraping:", error.message);
-    await browser.close();
+    console.error("Failed to connect to MongoDB", error.message);
   }
 }
+main();
 
-// MongoDB Connection + App Init
-const port = process.env.PORT || 10000;
+// Schemas
+const events = require("./schemas/events");
+const emails = require("./schemas/emails");
 
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(async () => {
-    console.log("Connected to MongoDB");
+let totalEvents = 0;
 
-    // Initial event count
-    totalEvents = await events.countDocuments();
-
-    await scrapeEvents();
-    cron.schedule("0 */5 * * *", scrapeEvents); // Every 5 hours
-
-    // Start the server
-    app.listen(port, () => {
-      console.log(`Server is listening on port ${port}`);
-    });
-  })
-  .catch((error) => {
-    console.error("Failed to connect to MongoDB:", error.message);
-    process.exit(1);
-  });
-
-// GET /events
+// Endpoints
 app.get("/events", async (req, res) => {
   const offset = parseInt(req.query.offset);
 
@@ -141,6 +42,7 @@ app.get("/events", async (req, res) => {
 
   try {
     const eventsDetails = await events.find().skip(offset).limit(5);
+
     res.status(200).json({
       success: true,
       next:
@@ -154,7 +56,6 @@ app.get("/events", async (req, res) => {
   }
 });
 
-// POST /emails
 app.post("/emails", async (req, res) => {
   const { email, ticket } = req.body;
 
@@ -164,7 +65,7 @@ app.post("/emails", async (req, res) => {
   }
 
   try {
-    const checkEmail = await emails.findOne({ email });
+    const checkEmail = await emails.findOne({ email: email });
 
     if (checkEmail) {
       await emails.findOneAndUpdate(
@@ -183,4 +84,100 @@ app.post("/emails", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// PUPPETEER SCRAPER
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+
+puppeteer.use(StealthPlugin());
+
+async function scrapeEvents() {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+  const page = await browser.newPage();
+
+  await page.goto("https://www.sydney.com/events");
+  await page.waitForSelector(".product-list-domestic.is_ready.map_not_open", {
+    timeout: 10000,
+  });
+
+  const scrapedEvents = await page.evaluate(() => {
+    const eventElements = document.querySelectorAll(
+      ".product-list-domestic.is_ready.map_not_open .grid-item.product-list-widget.tile__product-list"
+    );
+
+    return Array.from(eventElements).map((el) => ({
+      title: el.querySelector("h3")?.innerText.trim(),
+      initialLink: el.querySelector("a")?.href,
+      date: el.querySelector(".product__list-date")?.innerText || "No date",
+      image: el.querySelector(".img-responsive")?.src,
+      description: el.querySelector(".prod-desc")?.innerText,
+      location: el.querySelector(".tile__area-name")?.innerText,
+    }));
+  });
+
+  let finalEvents = [];
+  for (const event of scrapedEvents) {
+    try {
+      const eventPage = await browser.newPage();
+      await eventPage.goto(event.initialLink, { waitUntil: "networkidle2" });
+
+      const ticketLink = await eventPage.evaluate(() => {
+        const link = document.querySelector(
+          ".atdw-inpage__cta.has-booking .btn.btn__cta__with-price"
+        )?.href;
+        return link || null;
+      });
+
+      finalEvents.push({
+        ...event,
+        link: ticketLink || event.initialLink,
+      });
+
+      await eventPage.close();
+    } catch (err) {
+      console.error("Failed to get final link for event:", event.title, err);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  await browser.close();
+
+  if (!finalEvents.length) {
+    console.log("No events found");
+    return;
+  }
+
+  // Clear old events
+  await events.deleteMany({});
+  console.log("Deleted previous stored events");
+
+  // Save new ones
+  await events.insertMany(finalEvents);
+  console.log(`Scraped & inserted ${finalEvents.length} events`);
+
+  (async function () {
+    const eventsCount = await events.countDocuments();
+    totalEvents = eventsCount;
+  })();
+}
+scrapeEvents();
+
+// SCHEDULER
+const cron = require("node-cron");
+cron.schedule("0 */5 * * *", scrapeEvents); // every 5 hours
+
+(async function () {
+  const eventsCount = await events.countDocuments();
+  totalEvents = eventsCount;
+})();
+
+// SERVER START
+const port = process.env.PORT || 10000;
+app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
 });
