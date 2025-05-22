@@ -37,7 +37,7 @@ RUN npm ci
 COPY . .
 
 # Expose the port (informational; Render uses PORT env var)
-EXPOSE 10000
+EXPOSE $PORT
 
 # Start the app using xvfb (required for headless Puppeteer)
 CMD ["xvfb-run", "--", "node", "index.js"]
