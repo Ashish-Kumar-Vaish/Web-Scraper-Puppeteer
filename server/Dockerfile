@@ -1,3 +1,6 @@
+# Use an official Node.js runtime as a base image
+FROM node:18
+
 # Install required dependencies including xauth
 RUN apt-get update && apt-get install -y \
   wget \
@@ -22,3 +25,17 @@ RUN apt-get update && apt-get install -y \
   xauth \
   --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Install app dependencies
+COPY package*.json ./
+RUN npm ci
+
+# Bundle app source
+COPY . .
+
+# Expose port and run app with xvfb
+EXPOSE 10000
+CMD ["xvfb-run", "--", "node", "index.js"]
