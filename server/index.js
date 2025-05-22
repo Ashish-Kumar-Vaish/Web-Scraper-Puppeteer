@@ -96,7 +96,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 
 puppeteer.use(StealthPlugin());
 
-(async function scrapeEvents() {
+async function scrapeEvents() {
   const browser = await puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -168,7 +168,8 @@ puppeteer.use(StealthPlugin());
     const eventsCount = await events.countDocuments();
     totalEvents = eventsCount;
   })();
-})();
+}
+scrapeEvents();
 
 // SCHEDULER
 const cron = require("node-cron");
