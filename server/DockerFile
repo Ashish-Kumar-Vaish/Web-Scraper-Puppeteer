@@ -1,30 +1,26 @@
-# Base image with Chromium and Node preinstalled
+# Use Puppeteer's official base image with Chrome pre-installed
 FROM ghcr.io/puppeteer/puppeteer:24.8.2
 
-# Switch to root to install additional dependencies
 USER root
 
-# Install XVFB for headless display
+# Optional: Install xvfb for headless display
 RUN apt-get update && \
     apt-get install -y xvfb
 
-# Switch back to node user
 USER node
 
-# Set environment variables
 ENV DISPLAY=:99
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Set working directory
-WORKDIR /usr/src/app
+# Prevent puppeteer from downloading its own Chrome
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Copy only package files and install dependencies
+WORKDIR /app
+
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
-# Copy the rest of your server code
 COPY . .
 
-# Start the server with virtual display
-CMD xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" npx nodemon index.js
+# Start the server using xvfb and nodemon or node
+CMD xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" node index.js
