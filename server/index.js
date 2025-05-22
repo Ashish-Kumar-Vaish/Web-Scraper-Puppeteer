@@ -19,6 +19,11 @@ async function main() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to MongoDB!");
+    
+    (async function () {
+      const eventsCount = await events.countDocuments();
+      totalEvents = eventsCount;
+    })();
   } catch (error) {
     console.error("Failed to connect to MongoDB", error.message);
   }
@@ -170,11 +175,6 @@ scrapeEvents();
 // SCHEDULER
 const cron = require("node-cron");
 cron.schedule("0 */5 * * *", scrapeEvents); // every 5 hours
-
-(async function () {
-  const eventsCount = await events.countDocuments();
-  totalEvents = eventsCount;
-})();
 
 // SERVER START
 const port = process.env.PORT || 10000;
