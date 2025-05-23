@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./Events.css";
 import Header from "../../components/header/Header";
 import Card from "../../components/card/Card";
@@ -7,25 +7,56 @@ const Events = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [next, setNext] = useState("");
+  const [columnCount, setColumnCount] = useState(getColumnCount());
 
+  // get the current column count based on the window width
+  function getColumnCount() {
+    const width = window.innerWidth;
+    if (width < 600) return 1;
+    if (width < 900) return 2;
+    return 3;
+  }
+
+  // adjust the layout
+  const handleResize = useCallback(() => {
+    setColumnCount(getColumnCount());
+  }, []);
+
+  // Set up the resize event listener
+  useEffect(() => {
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [handleResize]);
+
+  // Fetch events when the component mounts
   useEffect(() => {
     if (!events.length) {
       fetchEvents("http://localhost:8000/events?offset=0");
     }
-  }, []);
+  }, [events]);
 
+  // Fetch more events
   const fetchEvents = async (link) => {
     setLoading(true);
-
     const response = await fetch(link);
     const result = await response.json();
 
     if (result.success) {
       setEvents((prev) => [...prev, ...result.events]);
       setNext(result.next);
-      console.log(result.next);
       setLoading(false);
     }
+  };
+
+  // chunk events into columns
+  const distributeToColumns = (items, columns) => {
+    const distributed = Array.from({ length: columns }, () => []);
+    items.forEach((item, index) => {
+      distributed[index % columns].push(item);
+    });
+    return distributed;
   };
 
   return (
@@ -34,25 +65,21 @@ const Events = () => {
 
       <div className="container">
         <div className="cardWrapper">
-          {events.length ? (
-            events.map((event, index) => {
-              return <Card key={index} event={event} />;
-            })
-          ) : (
-            <div className="noEvents">
-              <h1>No events found :(</h1>
-            </div>
+          {distributeToColumns(events, columnCount).map(
+            (columnEvents, colIdx) => (
+              <div className="masonry-column" key={colIdx}>
+                {columnEvents.map((event, i) => (
+                  <Card key={`${colIdx}-${i}`} event={event} />
+                ))}
+              </div>
+            )
           )}
         </div>
 
         <button
-          onClick={() => {
-            setLoading(true);
-            fetchEvents(next);
-          }}
+          onClick={() => fetchEvents(next)}
           className="loadMore"
           disabled={loading}
-          type="button"
           style={next ? {} : { display: "none" }}
         >
           {loading ? "Loading..." : "Load More"}

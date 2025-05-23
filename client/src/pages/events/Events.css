@@ -3,29 +3,37 @@
   flex-direction: column;
   align-items: center;
   gap: 2vmin;
+}
 
-  .container {
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+
+  .cardWrapper {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
+    gap: 2vmin;
+    width: 95%;
+    padding: 1vmin;
+    justify-content: center;
+  }
 
-    .cardWrapper {
-      width: 95%;
-      columns: 500px;
-    }
+  .masonry-column {
+    gap: 1.5vmin;
+    flex: 1;
+  }
 
-    .loadMore {
-      margin:  2vmin;
-      padding: 1vmin;
-      border: none;
-      border-radius: 1vmin;
-      outline: none;
-      background-color: var(--color-primary);
-      color: var(--color-surface);
-      font-size: 1.2rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
+  .loadMore {
+    margin: 2vmin;
+    padding: 1vmin;
+    border: none;
+    border-radius: 1vmin;
+    outline: none;
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
   }
 }

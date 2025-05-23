@@ -1,7 +1,14 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-require("dotenv").config();
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+const events = require("./schemas/events");
+const emails = require("./schemas/emails");
+const cron = require("node-cron");
+
+let totalEvents = 0;
 
 // EXPRESS
 app.use(express.json());
@@ -14,54 +21,21 @@ app.use(
 );
 
 // Connect to MongoDB
-// const mongoose = require("mongoose");
-// async function main() {
-//   try {
-//     await mongoose.connect(process.env.MONGODB_URI);
-//     console.log("Connected to MongoDB!");
-
-//     (async function () {
-//       const eventsCount = await events.countDocuments();
-//       totalEvents = eventsCount;
-//     })();
-//   } catch (error) {
-//     console.error("Failed to connect to MongoDB", error.message);
-//   }
-// }
-// main();
-
-const { MongoClient, ServerApiVersion } = require("mongodb");
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(process.env.MONGODB_URI, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
-
-async function run() {
+const mongoose = require("mongoose");
+async function main() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("Connected to MongoDB!");
+
+    (async function () {
+      const eventsCount = await events.countDocuments();
+      totalEvents = eventsCount;
+    })();
+  } catch (error) {
+    console.error("Failed to connect to MongoDB", error.message);
   }
 }
-run().catch(console.dir);
-
-// Schemas
-const events = require("./schemas/events");
-const emails = require("./schemas/emails");
-
-let totalEvents = 0;
+main();
 
 // Endpoints
 app.get("/events", async (req, res) => {
@@ -119,9 +93,6 @@ app.post("/emails", async (req, res) => {
 });
 
 // PUPPETEER SCRAPER
-const puppeteer = require("puppeteer-extra");
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-
 puppeteer.use(StealthPlugin());
 
 async function scrapeEvents() {
@@ -200,11 +171,10 @@ async function scrapeEvents() {
 scrapeEvents();
 
 // SCHEDULER
-const cron = require("node-cron");
 cron.schedule("0 */5 * * *", scrapeEvents); // every 5 hours
 
 // SERVER START
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 8000;
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
