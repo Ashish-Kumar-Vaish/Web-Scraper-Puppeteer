@@ -12,7 +12,7 @@
 
   .popupContent {
     background: var(--color-bg);
-    padding: 5vmin;
+    padding: 2.5rem;
     border-radius: 8px;
     width: 90%;
     max-width: 400px;
@@ -22,8 +22,8 @@
       position: absolute;
       top: 0;
       right: 0;
-      height: 5vmin;
-      width: 5vmin;
+      height: 2.5rem;
+      width: 2.5rem;
       background: none;
       border: none;
       border-radius: 50%;
@@ -34,8 +34,8 @@
     form input[type="email"] {
       width: 95%;
       padding: 2%;
-      margin-bottom: 1vmin;
-      border-radius: 1vmin;
+      margin-bottom: 0.5rem;
+      border-radius: 0.5rem;
       border: 1% solid #ccc;
       font-size: 1rem;
     }
@@ -43,8 +43,8 @@
     .checkboxLabel {
       display: flex;
       align-items: center;
-      gap: 1vmin;
-      margin-bottom: 1vmin;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
       font-size: 1rem;
       user-select: none;
     }
